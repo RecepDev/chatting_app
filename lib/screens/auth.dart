@@ -17,7 +17,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
 
   void _submit(){
-   final isValid = _form.currentState!.validate();
+   //final isValid = _form.currentState!.validate();
 
     if(isValid) {
       _form.currentState!.save();
