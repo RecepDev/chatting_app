@@ -17,7 +17,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
 
   void _submit(){
-   //final isValid = _form.currentState!.validate();
+   final isValid = _form.currentState!.validate();
 
     if(isValid) {
       _form.currentState!.save();
@@ -80,7 +80,7 @@ class _AuthScreenState extends State<AuthScreen> {
                               labelText: 'Password',
                             ),
                             autocorrect: false,
-                            obscureText: true,
+                            obscureText: false,
                             validator: (value) {
                               if (value == null ||
                                   value.trim().length < 6) {
