@@ -29,7 +29,8 @@ class _VerifyEmailpageState extends State<VerifyEmailpage> {
       sendVerificationEmail();
       timer = Timer.periodic(Duration(seconds: 3), (_) => checkEmailVerified());
     }
-  }
+  } 
+  
   @override
   void dispose() {
     // TODO: implement dispose
