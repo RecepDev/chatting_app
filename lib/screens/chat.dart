@@ -8,6 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:sugar/sugar.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
@@ -22,6 +23,7 @@ class _ChatScreenState extends State<ChatScreen> {
   late String sendedId = '';
   late String gelenId = '';
   String title = 'ChainChat';
+  late String gelen;
 
   final _formKey = GlobalKey<FormState>();
   bool isChatPressed = true;
@@ -59,19 +61,7 @@ class _ChatScreenState extends State<ChatScreen> {
       FirebaseFirestore.instance
           .collection('chats')
           .doc(enteredText)
-          .set(HashMap());
-
-      FirebaseFirestore.instance
-          .collection('chats')
-          .doc(enteredText)
-          .collection(user.uid)
-          .add({
-        'text': 'Yeni',
-        'createdAt': Timestamp.now(),
-        'userId': user.uid,
-        'username': userData.data()!['username'],
-        'userImage': userData.data()!['image_url'],
-      });
+          .set({'owner': user.uid});
     }
   }
 
@@ -109,12 +99,12 @@ class _ChatScreenState extends State<ChatScreen> {
               children: [
                 ElevatedButton(
                   onPressed: () {
-                     if (isChatPressed == false){
-                              setState(() {
-                                isChatPressed = true;
-                                title = 'ChainChat';
-                              });
-                            }
+                    if (isChatPressed == false) {
+                      setState(() {
+                        isChatPressed = true;
+                        title = 'ChainChat';
+                      });
+                    }
                   },
                   style: const ButtonStyle(
                     backgroundColor: MaterialStatePropertyAll(
@@ -142,7 +132,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                         ElevatedButton(
                           onPressed: () {
-                            if (isChatPressed == false){
+                            if (isChatPressed == false) {
                               setState(() {
                                 isChatPressed = true;
                                 title = 'ChainChat';
@@ -150,7 +140,6 @@ class _ChatScreenState extends State<ChatScreen> {
                             } else {
                               return;
                             }
-                              
                           },
                           style: const ButtonStyle(
                             backgroundColor: MaterialStatePropertyAll(
@@ -175,9 +164,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     FirebaseFirestore.instance.collection('chats').snapshots(),
                 builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                      
-                    );
+                    return const Center();
                   }
 
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -199,18 +186,26 @@ class _ChatScreenState extends State<ChatScreen> {
                       scrollDirection: Axis.vertical,
                       shrinkWrap: true,
                       itemBuilder: (context, index) {
-                        return Card(
-                          child: ListTile(
-                            leading: const Icon(Icons.chat),
-                            title: Text(loadedChatsNames[index].id),
-                            onTap: () {
-                              setState(() {
-                                title = loadedChatsNames[index].id;
-                                gelenId = loadedChatsNames[index].id;
-                                sendedId = loadedChatsNames[index].id;
-                                isChatPressed = !isChatPressed;
-                              });
-                            },
+                        return Dismissible(
+                          onDismissed: (direction) {
+                            deleteCheck(loadedChatsNames[index].id);
+                          },
+                          key: UniqueKey(),
+                          child: Card(
+                            key: const ValueKey('2'),
+                            child: ListTile(
+                              key: const ValueKey('2'),
+                              leading: const Icon(Icons.chat),
+                              title: Text(loadedChatsNames[index].id),
+                              onTap: () {
+                                setState(() {
+                                  title = loadedChatsNames[index].id;
+                                  gelenId = loadedChatsNames[index].id;
+                                  sendedId = loadedChatsNames[index].id;
+                                  isChatPressed = !isChatPressed;
+                                });
+                              },
+                            ),
                           ),
                         );
                       },
@@ -267,7 +262,7 @@ class _ChatScreenState extends State<ChatScreen> {
               // Other properties
             ),
             title: const Text(
-              'Yeni Chat ismi?',
+              'New chat name?',
               style: TextStyle(
                 fontSize: 17,
               ),
@@ -295,5 +290,92 @@ class _ChatScreenState extends State<ChatScreen> {
       },
     );
     return isconfirm;
+  }
+
+  void deleteChat(String silinecekChatismi) {
+    FirebaseFirestore.instance
+        .collection('chats')
+        .doc(silinecekChatismi)
+        .delete()
+        .then(
+          (doc) => print("Document deleted"),
+          onError: (e) => print("Error updating document $e"),
+        );
+  }
+
+  void deleteCheck(String silinecekChatismi) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text(
+            'Are You Sure?',
+            style: TextStyle(
+              fontSize: 17,
+            ),
+          ),
+          actions: [
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                setState(() {
+                  Navigator.of(context).pop();
+                });
+              },
+            ),
+            TextButton(
+              child: const Text('Confirm'),
+              onPressed: () async {
+                await ownerCheck(silinecekChatismi).then((String value) {
+                  setState(() {
+                    gelen = value;
+                  });
+
+                  if (gelen == FirebaseAuth.instance.currentUser!.uid) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content:
+                            Text('The chat is successfully deleted.'),
+                      ),
+                    );
+                    setState(() {
+                      deleteChat(silinecekChatismi);
+                      Navigator.of(context).pop();
+                    });
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content:
+                            Text('This chat is not yours'),
+                      ),
+                    );
+                    setState(() {
+                      Navigator.of(context).pop();
+                    });
+                  }
+                });
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<String> ownerCheck(String chatismi) async {
+    var gelen = await FirebaseFirestore.instance
+        .collection('chats')
+        .doc(chatismi)
+        .get()
+        .then(
+      (DocumentSnapshot doc) {
+        final data = doc.data() as Map<String, dynamic>;
+
+        return data['owner'].toString();
+      },
+      onError: (e) => print("Error getting document: $e"),
+    );
+
+    return gelen;
   }
 }
