@@ -80,7 +80,7 @@ class _ChatScreenState extends State<ChatScreen> {
             },
             icon: const Icon(Icons.add),
           ),
-          const Text('Logout'),
+          
           IconButton(
             onPressed: () {
               showConfirmationDialog(context);
