@@ -2,7 +2,7 @@ import 'package:chatting_app/api/firebase_api.dart';
 import 'package:chatting_app/screens/auth.dart';
 import 'package:chatting_app/screens/chat.dart';
 import 'package:chatting_app/screens/splash.dart';
-import 'package:chatting_app/screens/verifyEmailPage.dart';
+import 'package:chatting_app/screens/verify_email.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:firebase_auth/firebase_auth.dart';
