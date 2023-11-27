@@ -1,8 +1,11 @@
+import 'dart:io';
 
+import 'package:chatting_app/screens/0.11_image_detail.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:sugar/sugar.dart';
 import 'dart:core';
@@ -10,8 +13,10 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class NewMessage extends StatefulWidget {
-  const NewMessage({super.key, required this.gelenId});
+  const NewMessage(
+      {super.key, required this.gelenId, required this.gelenChatName});
   final String gelenId;
+  final String gelenChatName;
 
   @override
   State<NewMessage> createState() {
@@ -21,7 +26,8 @@ class NewMessage extends StatefulWidget {
 
 class _NewMessageState extends State<NewMessage> {
   late String _jwt;
-  var _messageController = TextEditingController();
+  final _messageController = TextEditingController();
+  late File secilenImage;
 
   @override
   void dispose() {
@@ -30,32 +36,34 @@ class _NewMessageState extends State<NewMessage> {
     super.dispose();
   }
 
-String getUTCDateTime() {
-  //String<Timezone> timezone = 'Europe/Istanbul';
-  ZonedDateTime now = ZonedDateTime.now(Timezone('Europe/Istanbul'));
-  var formatter = DateFormat.Hm();
-  return now.toString();
-}
-
-Future<void> fetchNewYorkTime() async {
-  final response = await http.get(Uri.parse('http://worldtimeapi.org/api/timezone/America/New_York'));
-  if (response.statusCode == 200) {
-    final Map<String, dynamic> data = json.decode(response.body);
-    final String newYorkTime = data['datetime'];
-    print('New York Saati: $newYorkTime');
-    setJwt(newYorkTime);
-  } else {
-    throw Exception('New York saat bilgisini alirken hata oluştu.');
+  String getUTCDateTime() {
+    //String<Timezone> timezone = 'Europe/Istanbul';
+    ZonedDateTime now = ZonedDateTime.now(Timezone('Europe/Istanbul'));
+    var formatter = DateFormat.Hm();
+    return now.toString();
   }
-}
-getJwtData() {
-  fetchNewYorkTime();
-  return _jwt;
-}
 
-setJwt(String time){
-  _jwt = time;
-}
+  Future<void> fetchNewYorkTime() async {
+    final response = await http.get(
+        Uri.parse('http://worldtimeapi.org/api/timezone/America/New_York'));
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = json.decode(response.body);
+      final String newYorkTime = data['datetime'];
+      print('New York Saati: $newYorkTime');
+      setJwt(newYorkTime);
+    } else {
+      throw Exception('New York saat bilgisini alirken hata oluştu.');
+    }
+  }
+
+  getJwtData() {
+    fetchNewYorkTime();
+    return _jwt;
+  }
+
+  setJwt(String time) {
+    _jwt = time;
+  }
 
   void _submitMessage() async {
     final enteredMessage = _messageController.text;
@@ -73,55 +81,158 @@ setJwt(String time){
         .doc(user.uid)
         .get();
 
+    FirebaseFirestore.instance.collection('chats').doc(widget.gelenId).update({
+      'isEmpty': true,
+    });
+
     FirebaseFirestore.instance
         .collection('chats')
         .doc(widget.gelenId)
-        .collection('aaa')
+        .collection('messages')
         .add({
       'text': enteredMessage,
       'createdAt': FieldValue.serverTimestamp(),
-    //  getJwtData(),
+      'textImage': 'false',
+      //  getJwtData(),
       //DateFormat.Hms().format(setup()),
       'userId': user.uid,
       'username': userData.data()!['username'],
       'userImage': userData.data()!['image_url'],
     });
+
+    await FirebaseFirestore.instance
+        .collection('chats')
+        .doc(widget.gelenChatName)
+        .update({'newTextTime': FieldValue.serverTimestamp()});
   }
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: 15, right: 1, bottom: 14),
-      child: Row(children: [
-        Expanded(
-          child: TextField(
-            
-            controller: _messageController,
-            textCapitalization: TextCapitalization.sentences,
-            autocorrect: true,
-            enableSuggestions: true,
-            decoration: const InputDecoration(
-              filled: true,
-              hintStyle: TextStyle(color: Colors.grey),
-              fillColor: Colors.transparent,
-              contentPadding: const EdgeInsets.symmetric(vertical: 0.0, horizontal: 20.0),
-              border: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              errorBorder: InputBorder.none,
-              disabledBorder: InputBorder.none,
-              focusColor: Colors.black,
-              hoverColor: Colors.black26,
-              labelText: 'send a message...',),
+      padding: const EdgeInsets.only(left: 5, right: 1, bottom: 14),
+      child: SizedBox(
+        height: 50,
+        width: MediaQuery.sizeOf(context).width,
+        child: Row(children: [
+          Expanded(
+            child: Container(
+              //color: Colors.grey,
+              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(22),
+                  color: Theme.of(context).colorScheme.primary),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _messageController,
+                      textCapitalization: TextCapitalization.sentences,
+                      autocorrect: true,
+                      enableSuggestions: true,
+                      cursorColor: Colors.white,
+                      decoration: const InputDecoration(
+                        filled: true,
+                        hintStyle: TextStyle(color: Colors.white70),
+                        fillColor: Colors.transparent,
+                        contentPadding: EdgeInsets.symmetric(
+                            vertical: 0.0, horizontal: 20.0),
+                        border: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        focusColor: Colors.white,
+                        hoverColor: Colors.white,
+                        hintText: 'Message',
+                      ),
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  Wrap(
+                    spacing: 0,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(right: 13),
+                        child: SizedBox(
+                          width: 25,
+                          child: IconButton(
+                            padding: const EdgeInsets.all(0),
+                            onPressed: _pickImageGallery,
+                            icon: const Icon(Icons.photo),
+                            style: const ButtonStyle(
+                              iconColor: MaterialStatePropertyAll(Colors.white),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(right: 15),
+                        child: SizedBox(
+                          width: 25,
+                          child: IconButton(
+                            padding: const EdgeInsets.all(0),
+                            onPressed: _pickImageCamera,
+                            icon: const Icon(Icons.camera_alt_sharp),
+                            style: const ButtonStyle(
+                              iconColor: MaterialStatePropertyAll(Colors.white),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                ],
+              ),
+            ),
           ),
-        ),
-        IconButton(
-          
-          color: Theme.of(context).colorScheme.primary,
-          icon: const Icon(Icons.send),
-          onPressed: _submitMessage,
-        ),
-      ]),
+          const SizedBox(
+            width: 2,
+          ),
+          Container(
+            decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(44),
+                color: Theme.of(context).colorScheme.primary),
+            child: IconButton(
+              color: Colors.white,
+              icon: const Icon(Icons.send),
+              onPressed: _submitMessage,
+            ),
+          ),
+        ]),
+      ),
     );
+  }
+
+  void _pickImageCamera() async {
+    final pickedImage = await ImagePicker().pickImage(
+      source: ImageSource.camera,
+      imageQuality: 100,
+    );
+    if (pickedImage == null) {
+      return;
+    }
+    secilenImage = File(pickedImage.path);
+
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (context) => ImageDetailScreen(
+          secilenImage: secilenImage, chatId: widget.gelenChatName),
+    ));
+    // widget.onPickImage(_pickedImageFile!);
+  }
+
+  void _pickImageGallery() async {
+    final pickedImage = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 100,
+    );
+    if (pickedImage == null) {
+      return;
+    }
+    secilenImage = File(pickedImage.path);
+
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (context) => ImageDetailScreen(
+          secilenImage: secilenImage, chatId: widget.gelenChatName),
+    ));
+    // widget.onPickImage(_pickedImageFile!);
   }
 }

@@ -9,12 +9,12 @@ class UserImagePicker extends StatefulWidget {
   const UserImagePicker({
     super.key,
     required this.onPickImage,
+    required this.isProfilOrChat,
   });
-
 
   final void Function(File pickedImage) onPickImage;
 
-
+  final bool isProfilOrChat;
 
   @override
   State<UserImagePicker> createState() {
@@ -25,27 +25,28 @@ class UserImagePicker extends StatefulWidget {
 class _UserImagePickerState extends State<UserImagePicker> {
   File? _pickedImageFile;
   bool isImagePicked = false;
-  Image defImage = Image.asset('assets/images/user.png');
+  late Image defImage = widget.isProfilOrChat
+      ? Image.asset('assets/images/user.png')
+      : Image.asset('assets/images/group.jpeg');
 
-  
-
-  
-  
-
- Future<File> getImageFileFromAssets(String path) async {
-  final byteData = await rootBundle.load('assets/$path');
-  final file = File('${(await getTemporaryDirectory()).path}/$path');
-  await file.writeAsBytes(byteData.buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes));
-  return file;
+  Future<File> getImageFileFromAssets(String path) async {
+    final byteData = await rootBundle.load('assets/$path');
+    final file = File('${(await getTemporaryDirectory()).path}/$path');
+    await file.writeAsBytes(byteData.buffer
+        .asUint8List(byteData.offsetInBytes, byteData.lengthInBytes));
+    return file;
   }
 
-  yeniMethod() async{
-    _pickedImageFile = await getImageFileFromAssets('assets/images/user.png');
+  yeniMethod() async {
+    if (widget.isProfilOrChat) {
+      _pickedImageFile = await getImageFileFromAssets('assets/images/user.png');
+    } else {
+      _pickedImageFile =
+          await getImageFileFromAssets('assets/images/group.jpeg');
+    }
   }
-  
 
   void _pickImage() async {
-
     final pickedImage = await ImagePicker().pickImage(
       source: ImageSource.camera,
       imageQuality: 50,
@@ -64,7 +65,6 @@ class _UserImagePickerState extends State<UserImagePicker> {
 
   @override
   Widget build(BuildContext context) {
-    
     return Column(
       children: [
         CircleAvatar(
@@ -72,8 +72,10 @@ class _UserImagePickerState extends State<UserImagePicker> {
           backgroundColor: Colors.grey,
           foregroundImage:
               //defImage()
-              isImagePicked == true ? FileImage(_pickedImageFile!) : defImage.image,
-              //_pickedImageFile != null ? FileImage(_pickedImageFile!) : null,
+              isImagePicked == true
+                  ? FileImage(_pickedImageFile!)
+                  : defImage.image,
+          //_pickedImageFile != null ? FileImage(_pickedImageFile!) : null,
         ),
         TextButton.icon(
           onPressed: _pickImage,
