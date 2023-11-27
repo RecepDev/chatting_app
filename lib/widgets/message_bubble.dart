@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 // A MessageBubble for showing a single chat message on the ChatScreen.
 class MessageBubble extends StatelessWidget {
@@ -9,13 +11,17 @@ class MessageBubble extends StatelessWidget {
     required this.username,
     required this.message,
     required this.isMe,
+    required this.date,
+    required this.image,
   }) : isFirstInSequence = true;
 
   // Create a amessage bubble that continues the sequence.
   const MessageBubble.next({
     super.key,
+    required this.image,
     required this.message,
     required this.isMe,
+    required this.date,
   })  : isFirstInSequence = false,
         userImage = null,
         username = null;
@@ -26,6 +32,8 @@ class MessageBubble extends StatelessWidget {
   // shows user image for the first message from the same user, and changes
   // the shape of the bubble for messages thereafter.
   final bool isFirstInSequence;
+  final Timestamp date;
+  final String image;
 
   // Image of the user to be displayed next to the bubble.
   // Not required if the message is not the first in a sequence.
@@ -47,21 +55,22 @@ class MessageBubble extends StatelessWidget {
       children: [
         if (userImage != null)
           Positioned(
-            top: 15,
+            top: 5,
             // Align user image to the right, if the message is from me.
-            right: isMe ? 0 : null,
+            right: isMe ? 3 : null,
+            left: isMe ? null : 3,
             child: CircleAvatar(
               backgroundImage: NetworkImage(
                 userImage!,
               ),
               backgroundColor: theme.colorScheme.primary.withAlpha(180),
-              radius: 23,
+              radius: 17,
             ),
           ),
         Container(
           // Add some margin to the edges of the messages, to allow space for the
           // user's image.
-          margin: const EdgeInsets.symmetric(horizontal: 46),
+          margin: const EdgeInsets.symmetric(horizontal: 30),
           child: Row(
             // The side of the chat screen the message should show at.
             mainAxisAlignment:
@@ -88,54 +97,313 @@ class MessageBubble extends StatelessWidget {
                         ),
                       ),
                     ),
-
                   // The "speech" box surrounding the message.
-                  Container(
-                    decoration: BoxDecoration(
-                      color: isMe
-                          ? Colors.grey[300]
-                          : theme.colorScheme.secondary.withAlpha(200),
-                      // Only show the message bubble's "speaking edge" if first in
-                      // the chain.
-                      // Whether the "speaking edge" is on the left or right depends
-                      // on whether or not the message bubble is the current user.
-                      borderRadius: BorderRadius.only(
-                        topLeft: !isMe && isFirstInSequence
-                            ? Radius.zero
-                            : const Radius.circular(12),
-                        topRight: isMe && isFirstInSequence
-                            ? Radius.zero
-                            : const Radius.circular(12),
-                        bottomLeft: const Radius.circular(12),
-                        bottomRight: const Radius.circular(12),
-                      ),
-                    ),
-                    // Set some reasonable constraints on the width of the
-                    // message bubble so it can adjust to the amount of text
-                    // it should show.
-                    constraints: const BoxConstraints(maxWidth: 200),
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 10,
-                      horizontal: 14,
-                    ),
-                    // Margin around the bubble.
-                    margin: const EdgeInsets.symmetric(
-                      vertical: 4,
-                      horizontal: 12,
-                    ),
-                    child: Text(
-                      message,
-                      style: TextStyle(
-                        // Add a little line spacing to make the text look nicer
-                        // when multilined.
-                        height: 1.3,
+                  if (image == 'false')
+                    Container(
+                      decoration: BoxDecoration(
                         color: isMe
-                            ? Colors.black87
-                            : theme.colorScheme.onSecondary,
+                            ? Colors.grey[300]
+                            : theme.colorScheme.secondary.withAlpha(200),
+                        // Only show the message bubble's "speaking edge" if first in
+                        // the chain.
+                        // Whether the "speaking edge" is on the left or right depends
+                        // on whether or not the message bubble is the current user.
+                        borderRadius: BorderRadius.only(
+                          topLeft: !isMe && isFirstInSequence
+                              ? Radius.zero
+                              : const Radius.circular(12),
+                          topRight: isMe && isFirstInSequence
+                              ? Radius.zero
+                              : const Radius.circular(12),
+                          bottomLeft: const Radius.circular(12),
+                          bottomRight: const Radius.circular(12),
+                        ),
                       ),
-                      softWrap: true,
+                      // Set some reasonable constraints on the width of the
+                      // message bubble so it can adjust to the amount of text
+                      // it should show.
+                      constraints: const BoxConstraints(maxWidth: 280),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 7,
+                        horizontal: 10,
+                      ),
+                      // Margin around the bubble.
+                      margin: const EdgeInsets.symmetric(
+                        vertical: 3,
+                        horizontal: 3,
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(0),
+                        child: Wrap(
+                          /* crossAxisAlignment: isMe
+                                    ? WrapCrossAlignment.end
+                                    : WrapCrossAlignment.start, */
+                          alignment:
+                              isMe ? WrapAlignment.end : WrapAlignment.start,
+                          runAlignment: WrapAlignment.spaceBetween,
+                          children: [
+                            if (!isMe)
+                              Padding(
+                                padding:
+                                    const EdgeInsets.only(top: 10, left: 2),
+                                child: Text(
+                                  formatTimestamp(date),
+                                  style: TextStyle(
+                                    fontSize: 11, // Adjust font size if needed
+                                    color: isMe ? Colors.black : Colors.white,
+                                  ),
+                                ),
+                              ),
+                            Padding(
+                              padding: isMe
+                                  ? const EdgeInsets.only(
+                                      right: 8, bottom: 0, top: 3)
+                                  : const EdgeInsets.only(
+                                      left: 8, bottom: 0, top: 3),
+                              child: Text(
+                                message,
+                                softWrap: true,
+                                style: TextStyle(
+                                  height: 1.3,
+                                  color: isMe
+                                      ? Colors.black87
+                                      : theme.colorScheme.onSecondary,
+                                ),
+                              ),
+                            ),
+                            if (isMe)
+                              Padding(
+                                padding:
+                                    const EdgeInsets.only(top: 10, right: 0),
+                                child: Text(
+                                  formatTimestamp(date),
+                                  style: TextStyle(
+                                    fontSize: 11, // Adjust font size if needed
+                                    color: isMe ? Colors.black : Colors.white,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
+                  if (image != 'false' && message.isEmpty)
+                    Container(
+                      decoration: BoxDecoration(
+                        color: isMe
+                            ? Colors.grey[300]
+                            : theme.colorScheme.secondary.withAlpha(200),
+                        // Only show the message bubble's "speaking edge" if first in
+                        // the chain.
+                        // Whether the "speaking edge" is on the left or right depends
+                        // on whether or not the message bubble is the current user.
+                        borderRadius: BorderRadius.only(
+                          topLeft: !isMe && isFirstInSequence
+                              ? Radius.zero
+                              : const Radius.circular(12),
+                          topRight: isMe && isFirstInSequence
+                              ? Radius.zero
+                              : const Radius.circular(12),
+                          bottomLeft: const Radius.circular(12),
+                          bottomRight: const Radius.circular(12),
+                        ),
+                      ),
+                      // Set some reasonable constraints on the width of the
+                      // message bubble so it can adjust to the amount of text
+                      // it should show.
+                      constraints:
+                          const BoxConstraints(maxWidth: 205, maxHeight: 276),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 3,
+                        horizontal: 3,
+                      ),
+                      // Margin around the bubble.
+                      margin: const EdgeInsets.symmetric(
+                        vertical: 3,
+                        horizontal: 3,
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(1.2),
+                        child: Stack(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(0),
+                              child: ClipRRect(
+                                  borderRadius: BorderRadius.only(
+                                    topLeft: !isMe && isFirstInSequence
+                                        ? Radius.zero
+                                        : const Radius.circular(9),
+                                    topRight: isMe && isFirstInSequence
+                                        ? Radius.zero
+                                        : const Radius.circular(9),
+                                    bottomLeft: const Radius.circular(9),
+                                    bottomRight: const Radius.circular(9),
+                                  ),
+                                  child: Image.network(
+                                    image,
+                                    fit: BoxFit.fill,
+                                    // scale: 0.2,
+                                    /* cacheHeight: 200,
+                                    cacheWidth: 200, */
+                                    height: 270,
+                                    width: 200,
+                                  )),
+                            ),
+                            /*  Text(
+                              message,
+                              softWrap: true,
+                              style: TextStyle(
+                                height: 1.3,
+                                color: isMe
+                                    ? Colors.black87
+                                    : theme.colorScheme.onSecondary,
+                              ),
+                            ), */
+                            Positioned(
+                              bottom: 5,
+                              right: 5,
+                              child: Text(
+                                formatTimestamp(date),
+                                style: const TextStyle(
+                                  fontSize: 11, // Adjust font size if needed
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  if (image != 'false' && message.isNotEmpty)
+                    Container(
+                      decoration: BoxDecoration(
+                        color: isMe
+                            ? Colors.grey[300]
+                            : theme.colorScheme.secondary.withAlpha(200),
+                        // Only show the message bubble's "speaking edge" if first in
+                        // the chain.
+                        // Whether the "speaking edge" is on the left or right depends
+                        // on whether or not the message bubble is the current user.
+                        borderRadius: BorderRadius.only(
+                          topLeft: !isMe && isFirstInSequence
+                              ? Radius.zero
+                              : const Radius.circular(12),
+                          topRight: isMe && isFirstInSequence
+                              ? Radius.zero
+                              : const Radius.circular(12),
+                          bottomLeft: const Radius.circular(12),
+                          bottomRight: const Radius.circular(12),
+                        ),
+                      ),
+                      // Set some reasonable constraints on the width of the
+                      // message bubble so it can adjust to the amount of text
+                      // it should show.
+                      constraints: const BoxConstraints(
+                        maxWidth: 200,
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 3,
+                        horizontal: 3,
+                      ),
+                      // Margin around the bubble.
+                      margin: const EdgeInsets.symmetric(
+                        vertical: 3,
+                        horizontal: 3,
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(0),
+                        child: Column(
+                          crossAxisAlignment: isMe
+                              ? CrossAxisAlignment.end
+                              : CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(0),
+                              child: ClipRRect(
+                                  borderRadius: BorderRadius.only(
+                                    topLeft: !isMe && isFirstInSequence
+                                        ? Radius.zero
+                                        : const Radius.circular(9),
+                                    topRight: isMe && isFirstInSequence
+                                        ? Radius.zero
+                                        : const Radius.circular(9),
+                                    bottomLeft: const Radius.circular(9),
+                                    bottomRight: const Radius.circular(9),
+                                  ),
+                                  child: Image.network(
+                                    image,
+                                    fit: BoxFit.fill,
+                                    // scale: 0.2,
+                                    /* cacheHeight: 200,
+                                    cacheWidth: 200, */
+                                    height: 270,
+                                    width: 200,
+                                  )),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 0, left: 5),
+                              child: Wrap(
+                                /* crossAxisAlignment: isMe
+                                    ? WrapCrossAlignment.end
+                                    : WrapCrossAlignment.start, */
+                                /*  */
+                                alignment: WrapAlignment.end,
+                                //runAlignment: WrapAlignment.start,
+                                children: [
+                                  if (!isMe)
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                          top: 7, left: 2),
+                                      child: Text(
+                                        formatTimestamp(date),
+                                        style: TextStyle(
+                                          fontSize:
+                                              11, // Adjust font size if needed
+                                          color: isMe
+                                              ? Colors.black
+                                              : Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  Padding(
+                                    padding: isMe
+                                        ? const EdgeInsets.only(
+                                            right: 8, bottom: 0, top: 3)
+                                        : const EdgeInsets.only(
+                                            left: 8, top: 3),
+                                    child: Text(
+                                      message,
+                                      softWrap: true,
+                                      style: TextStyle(
+                                        height: 1.3,
+                                        color: isMe
+                                            ? Colors.black87
+                                            : theme.colorScheme.onSecondary,
+                                      ),
+                                    ),
+                                  ),
+                                  if (isMe)
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                          top: 10, right: 7),
+                                      child: Text(
+                                        formatTimestamp(date),
+                                        style: TextStyle(
+                                          fontSize:
+                                              11, // Adjust font size if needed
+                                          color: isMe
+                                              ? Colors.black
+                                              : Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
                 ],
               ),
             ],
@@ -143,5 +411,10 @@ class MessageBubble extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  String formatTimestamp(Timestamp timestamp) {
+    var format = DateFormat().add_Hm(); // <- use skeleton here
+    return format.format(timestamp.toDate());
   }
 }

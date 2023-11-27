@@ -1,26 +1,29 @@
 import 'dart:io';
+import 'dart:math';
 
+import 'package:chatting_app/model/user_callId_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
+
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'package:chatting_app/widgets/user_image_picker.dart';
+import 'package:provider/provider.dart';
 
 final _firebase = FirebaseAuth.instance;
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
 
+  static String localUserId = Random().nextInt(10000).toString();
   @override
   State<StatefulWidget> createState() {
     return _AuthScreenState();
   }
 }
-
 
 class _AuthScreenState extends State<AuthScreen> {
   final _form = GlobalKey<FormState>();
@@ -43,8 +46,7 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   yeniMethod() async {
-    _selectedImage = await getImageFileFromAssets('images/user.png');
-    
+    _selectedImage ??= await getImageFileFromAssets('images/user.png');
   }
 
   void _submit() async {
@@ -62,36 +64,43 @@ class _AuthScreenState extends State<AuthScreen> {
         _isAuthenticating = true;
       });
       if (_islogin) {
+        // ignore: unused_local_variable
         final usercredentials = await _firebase.signInWithEmailAndPassword(
             email: _enteredEmail, password: _enteredPassword);
       } else {
-          final userCreadentials =
-              await _firebase.createUserWithEmailAndPassword(
-                  email: _enteredEmail, password: _enteredPassword);
-          final storageRef = FirebaseStorage.instance
+        final userCreadentials = await _firebase.createUserWithEmailAndPassword(
+            email: _enteredEmail, password: _enteredPassword);
+
+        final storageRef = FirebaseStorage.instance
             .ref()
             .child('user_images')
             .child('${userCreadentials.user!.uid}.jpg');
         await storageRef.putFile(_selectedImage!);
         final imageUrl = await storageRef.getDownloadURL();
-        print(imageUrl);
+
         await FirebaseFirestore.instance
             .collection('users')
             .doc(userCreadentials.user!.uid)
             .set({
+          'talks': [''],
+          'photos': [],
+          'UserUid': userCreadentials.user!.uid,
           'username': _entereUsername,
           'email': _enteredEmail,
           'image_url': imageUrl,
+          'voiceCallId': AuthScreen.localUserId,
+          'lastUpdatePhoto': DateTime.now(),
+          'whoCheck': [],
+          'whoWillSee': [],
         });
-        
-
-        
       }
     } on FirebaseAuthException catch (error) {
       if (error.code == 'email-already-in-use') {
         //
       }
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).clearSnackBars();
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(error.message ?? 'Authentication failed.'),
@@ -106,7 +115,7 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.primary,
+      backgroundColor: const Color.fromARGB(255, 222, 219, 219),
       body: Center(
         child: SingleChildScrollView(
           child: Column(
@@ -134,9 +143,11 @@ class _AuthScreenState extends State<AuthScreen> {
                         children: [
                           if (!_islogin)
                             UserImagePicker(
+                              key: const Key('2'),
                               onPickImage: (pickedImage) {
                                 _selectedImage = pickedImage;
                               },
+                              isProfilOrChat: true,
                             ),
                           TextFormField(
                             decoration: const InputDecoration(
@@ -195,7 +206,8 @@ class _AuthScreenState extends State<AuthScreen> {
                           const SizedBox(
                             height: 12,
                           ),
-                          if (_isAuthenticating) const CircularProgressIndicator(),
+                          if (_isAuthenticating)
+                            const CircularProgressIndicator(),
                           if (!_isAuthenticating)
                             ElevatedButton(
                               onPressed: _submit,
