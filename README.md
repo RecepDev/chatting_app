@@ -1,7 +1,7 @@
 # chatting_app
 
-<img src="https://github.com/RecepDev/chatting_app/assets/84552102/0e07f2ca-b378-4395-bb47-295ec6ae8a29" width="444" />
-<img src="https://github.com/RecepDev/chatting_app/assets/84552102/1389560a-6f3b-480a-a539-8e1554345f05" width="444" />
+<img src="https://github.com/RecepDev/chatting_app/assets/84552102/0e07f2ca-b378-4395-bb47-295ec6ae8a29" width="333" />
+<img src="https://github.com/RecepDev/chatting_app/assets/84552102/1389560a-6f3b-480a-a539-8e1554345f05" width="333" />
 <img src="https://github.com/RecepDev/chatting_app/assets/84552102/73c0aa71-936b-4aa5-8bab-3d58578894a7" width="200" />
 <img src="https://github.com/RecepDev/chatting_app/assets/84552102/f05706ec-1693-48f5-89a7-b757b2c478cd" width="200" />
 <img src="https://github.com/RecepDev/chatting_app/assets/84552102/92fdf9b5-54bf-4648-9b23-9e8ab312a857" width="200" />
